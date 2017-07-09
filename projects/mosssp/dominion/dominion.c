@@ -706,6 +706,25 @@ int playVillage(struct gameState *state, int handPos)
     return 0;
 }
 
+int playSalvager(struct gameState *state, int choice1, int handPos)
+{
+    int currentPlayer = whoseTurn(state);
+    //+1 buy
+    state->numBuys++;
+
+    if (choice1)
+    {
+        //gain coins equal to trashed card
+        state->coins = state->coins + getCost( handCard(choice1, state) );
+        //trash card
+        discardCard(choice1, currentPlayer, state, 1);	
+    }
+
+    //discard card
+    discardCard(handPos, currentPlayer, state, 0);
+    return 0;
+}
+
 int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState *state, int handPos, int *bonus)
 {
   int i;
@@ -1190,20 +1209,7 @@ int cardEffect(int card, int choice1, int choice2, int choice3, struct gameState
       return 0;
 		
     case salvager:
-      //+1 buy
-      state->numBuys++;
-			
-      if (choice1)
-	{
-	  //gain coins equal to trashed card
-	  state->coins = state->coins + getCost( handCard(choice1, state) );
-	  //trash card
-	  discardCard(choice1, currentPlayer, state, 1);	
-	}
-			
-      //discard card
-      discardCard(handPos, currentPlayer, state, 0);
-      return 0;
+        return playSalvager(state, choice1, handPos);
 		
     case sea_hag:
       for (i = 0; i < state->numPlayers; i++){
