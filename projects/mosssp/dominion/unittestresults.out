@@ -1,0 +1,107 @@
+unittest1.c:
+Tests for gainCard completed.
+Processing file 1 out of 1
+File 'dominion.c'
+Lines executed:18.65% of 563
+Branches executed:17.75% of 417
+Taken at least once:14.63% of 417
+Calls executed:8.00% of 100
+Creating 'dominion.c.gcov'
+
+unittest2.c:
+Tests for discardCard completed.
+Processing file 1 out of 1
+File 'dominion.c'
+Lines executed:20.78% of 563
+Branches executed:19.18% of 417
+Taken at least once:15.83% of 417
+Calls executed:8.00% of 100
+Creating 'dominion.c.gcov'
+
+unittest3.c:
+Tests for updateCoins completed.
+Processing file 1 out of 1
+File 'dominion.c'
+Lines executed:21.14% of 563
+Branches executed:19.18% of 417
+Taken at least once:16.31% of 417
+Calls executed:8.00% of 100
+Creating 'dominion.c.gcov'
+
+unittest4.c:
+Tests for drawCard completed.
+Processing file 1 out of 1
+File 'dominion.c'
+Lines executed:23.80% of 563
+Branches executed:20.14% of 417
+Taken at least once:17.75% of 417
+Calls executed:9.00% of 100
+Creating 'dominion.c.gcov'
+
+cardtest1.c:
+FAILED TEST: player 0's handCount is 8 after playing smithy. Expected: 7
+FAILED TEST: player 0's handCount is 8 after playing smithy. Expected: 7
+FAILED TEST: player 0's handCount is 8 after playing smithy. Expected: 7
+FAILED TEST: player 0's handCount is 8 after playing smithy. Expected: 7
+FAILED TEST: player 0's handCount is 8 after playing smithy. Expected: 7
+FAILED TEST: player 1's handCount is 3 after playing smithy. Expected: 2
+FAILED TEST: player 1's handCount is 3 after playing smithy. Expected: 2
+FAILED TEST: player 1's handCount is 3 after playing smithy. Expected: 2
+FAILED TEST: player 1's handCount is 3 after playing smithy. Expected: 2
+FAILED TEST: player 1's handCount is 3 after playing smithy. Expected: 2
+Tests for Smithy card completed.
+Processing file 1 out of 1
+File 'dominion.c'
+Lines executed:29.84% of 563
+Branches executed:28.54% of 417
+Taken at least once:20.62% of 417
+Calls executed:18.00% of 100
+Creating 'dominion.c.gcov'
+
+cardtest2.c:
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 5 post: 4
+    emptyDeck: 1
+FAILED TEST: playing card adventurer changed the total number of cards in player 0's deck, hand, and discard.
+    had 5 cards before playing adventurer. post: 4
+FAILED TEST: playing card adventurer changed the total number of cards in player 1's deck, hand, and discard.
+    had 10 cards before playing adventurer. post: 9
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 0 post: -496
+    emptyDeck: 1
+FAILED TEST: playing card adventurer changed the total number of cards in player 1's deck, hand, and discard.
+    had 0 cards before playing adventurer. post: -1
+Tests for adventurer card completed.Processing file 1 out of 1
+File 'dominion.c'
+Lines executed:33.21% of 563
+Branches executed:31.41% of 417
+Taken at least once:23.26% of 417
+Calls executed:22.00% of 100
+Creating 'dominion.c.gcov'
+
+cardtest3.c:
+FAILED TEST: playing card village changed the total number of cards in player 0's deck, hand, and discard.
+    had 10 cards before playing village. post: 9
+FAILED TEST: playing card village changed the total number of cards in player 0's deck, hand, and discard.
+    had 5 cards before playing village. post: 4
+FAILED TEST: playing card village changed the total number of cards in player 1's deck, hand, and discard.
+    had 10 cards before playing village. post: 9
+FAILED TEST: playing card village changed the total number of cards in player 1's deck, hand, and discard.
+    had 0 cards before playing village. post: -1
+Tests for village card completed.Processing file 1 out of 1
+File 'dominion.c'
+Lines executed:34.46% of 563
+Branches executed:31.41% of 417
+Taken at least once:23.50% of 417
+Calls executed:26.00% of 100
+Creating 'dominion.c.gcov'
+
+cardtest4.c:
+Tests for council_room card completed.Processing file 1 out of 1
+File 'dominion.c'
+Lines executed:36.41% of 563
+Branches executed:32.85% of 417
+Taken at least once:25.18% of 417
+Calls executed:31.00% of 100
+Creating 'dominion.c.gcov'
+
