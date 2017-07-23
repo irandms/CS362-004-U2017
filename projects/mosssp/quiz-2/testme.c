@@ -13,7 +13,7 @@ char *inputString(char *str)
     int stringSize = rand() % 16;
     int i;
 
-    if(NULL == str) {
+    if(NULL != str) {
         free(str);
     }
     str = malloc(sizeof(char) * stringSize);
