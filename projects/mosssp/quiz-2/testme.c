@@ -10,7 +10,7 @@ char inputChar()
 
 char *inputString(char *str)
 {
-    int stringSize = rand() % 16;
+    int stringSize = (rand() % 3) + 6;
     int i;
 
     if(NULL != str) {
@@ -18,9 +18,10 @@ char *inputString(char *str)
     }
     str = malloc(sizeof(char) * stringSize);
 
-    for(i = 0; i < stringSize; i++) {
+    for(i = 0; i < stringSize - 1; i++) {
         str[i] = inputChar();
     }
+    str[stringSize - 1] = '\0';
 
     return str;
 }
