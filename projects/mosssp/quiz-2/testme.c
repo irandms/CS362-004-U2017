@@ -19,7 +19,7 @@ char *inputString(char *str)
     str = malloc(sizeof(char) * stringSize);
 
     for(i = 0; i < stringSize - 1; i++) {
-        str[i] = inputChar();
+        str[i] = (rand() % 26) + 96;
     }
     str[stringSize - 1] = '\0';
 
