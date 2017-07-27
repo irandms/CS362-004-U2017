@@ -7,11 +7,11 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define TESTCARD "smithy"
+#define TESTCARD "village"
 #define MAX_TESTS 1000000
 
 void getRandomKingdom(int *k, int size, int required_card) {
-    memset(k, required_card, size); // all set to smithy
+    memset(k, required_card, size); // all set to village
     int kingdom_set_cards = 1;
     int random_num_is_unique = 1;
     int i;
@@ -97,7 +97,7 @@ void randomInitialize(struct gameState *G, int seed) {
     int numPlayers = 2 + rand() % 2;
 
     int k[10];
-    getRandomKingdom(k, 10, smithy);
+    getRandomKingdom(k, 10, village);
 
     memset(G, 0, sizeof(struct gameState));
     initializeGame(numPlayers, k, seed, G);
@@ -143,6 +143,7 @@ int main() {
     int totalCardsErrCount = 0;
     int failedToDrawErrorCount = 0;
     int drewTooManyErrorCount = 0;
+    int incorrectActionCountErrorCount = 0;
     int errorCount = 0;
 
     for(tests_done = 0; tests_done < MAX_TESTS; tests_done++) {
@@ -155,13 +156,13 @@ int main() {
         G.whoseTurn = p;
         if( G.handCount[p] > 0 ) {
             handPos = rand() % G.handCount[p];
-            G.hand[p][handPos] = smithy;
+            G.hand[p][handPos] = village;
         }
         memcpy(&pre, &G, sizeof(struct gameState));
 
         // TESTS
 
-        r = cardEffect(smithy, choice1, choice2, choice3, &G, handPos, &bonus);
+        r = cardEffect(village, choice1, choice2, choice3, &G, handPos, &bonus);
 
         if(r != 0) {
             printf("FAILED TEST: playing card %s resulted in nonzero return code, should always return 0.\n", TESTCARD);
@@ -169,11 +170,18 @@ int main() {
             errorCount++;
         }
 
-        if(G.handCount[p] != pre.handCount[p] + 2) {
-            if(drewTooManyErrorCount < 10) {
-                printf("FAILED TEST: player %d's handCount is %d after playing %s. Expected: %d\n", p, G.handCount[p], TESTCARD, pre.handCount[p] + 2);
-                printf("    Test #%d\n", tests_done);
-                drewTooManyErrorCount++;
+        if(G.handCount[p] != pre.handCount[p] && (G.deckCount[p] > 0)) {
+            printf("FAILED TEST: playing card %s did not changeplayer %d's handCount. They should have drawn 1 card and discarded village for a net 0 change.\n", TESTCARD, p);
+            printf("    pre: %d post: %d\n", pre.handCount[p], G.handCount[p]);
+            printf("    Deck is not empty.\n");
+        }
+
+        if(G.numActions != pre.numActions + 1) {
+            if(incorrectActionCountErrorCount < 10) {
+                printf("FAILED TEST: playing card %s did not result in numActions increasing by two.\n", TESTCARD);
+                printf("    pre: %d post: %d\n", pre.numActions, G.numActions);
+                printf("    difference should be 1 due to playing %s taking one of the two added actions.\n", TESTCARD);
+                incorrectActionCountErrorCount++;
             }
             errorCount++;
         }

@@ -7,11 +7,11 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define TESTCARD "village"
+#define TESTCARD "adventurer"
 #define MAX_TESTS 1000000
 
 void getRandomKingdom(int *k, int size, int required_card) {
-    memset(k, required_card, size); // all set to village
+    memset(k, required_card, size); // all set to adventurer
     int kingdom_set_cards = 1;
     int random_num_is_unique = 1;
     int i;
@@ -97,7 +97,7 @@ void randomInitialize(struct gameState *G, int seed) {
     int numPlayers = 2 + rand() % 2;
 
     int k[10];
-    getRandomKingdom(k, 10, village);
+    getRandomKingdom(k, 10, adventurer);
 
     memset(G, 0, sizeof(struct gameState));
     initializeGame(numPlayers, k, seed, G);
@@ -120,6 +120,24 @@ void randomInitialize(struct gameState *G, int seed) {
     randomizeDecksHandsDiscards(G, k, numPlayers);
 }
 
+int countTreasures(struct gameState *G) {
+    int treasureCount = 0;
+    int i;
+
+    for(i = 0; i < G->handCount[G->whoseTurn]; i++) {
+        switch(G->hand[G->whoseTurn][i]) {
+            case copper:
+            case silver:
+            case gold:
+                treasureCount++;
+            default:
+                break;
+        }
+    }
+
+    return treasureCount;
+}
+
 int main() {
     int seed = 1234;
     srand(seed);
@@ -129,6 +147,8 @@ int main() {
     int i;
     int r;
     int p;
+    int treasureCountPre;
+    int treasureCountPost;
     int preTotalCards;
     int postTotalCards;
 
@@ -137,13 +157,13 @@ int main() {
     int choice3 = 0;
     int handPos = 0;
     int bonus = 0;
+    int emptyDeck = 0;
 
     int tests_done = 0;
 
     int totalCardsErrCount = 0;
     int failedToDrawErrorCount = 0;
     int drewTooManyErrorCount = 0;
-    int incorrectActionCountErrorCount = 0;
     int errorCount = 0;
 
     for(tests_done = 0; tests_done < MAX_TESTS; tests_done++) {
@@ -154,45 +174,47 @@ int main() {
         randomInitialize(&G, seed);
         p = rand() % G.numPlayers;
         G.whoseTurn = p;
-        if( G.handCount[p] > 0 ) {
-            handPos = rand() % G.handCount[p];
-            G.hand[p][handPos] = village;
-        }
         memcpy(&pre, &G, sizeof(struct gameState));
 
         // TESTS
 
-        r = cardEffect(village, choice1, choice2, choice3, &G, handPos, &bonus);
+        treasureCountPre = countTreasures(&G);
+        r = cardEffect(adventurer, choice1, choice2, choice3, &G, handPos, &bonus);
+        treasureCountPost = countTreasures(&G);
 
-        if(r != 0) {
-            printf("FAILED TEST: playing card %s resulted in nonzero return code, should always return 0.\n", TESTCARD);
-            printf("    Test #%d\n", tests_done);
-            errorCount++;
-        }
-
-        if(G.handCount[p] != pre.handCount[p] && (G.deckCount[p] > 0)) {
-            printf("FAILED TEST: playing card %s did not changeplayer %d's handCount. They should have drawn 1 card and discarded village for a net 0 change.\n", TESTCARD, p);
-            printf("    pre: %d post: %d\n", pre.handCount[p], G.handCount[p]);
-            printf("    Deck is not empty.\n");
-        }
-
-        if(G.numActions != pre.numActions + 1) {
-            if(incorrectActionCountErrorCount < 10) {
-                printf("FAILED TEST: playing card %s did not result in numActions increasing by two.\n", TESTCARD);
-                printf("    pre: %d post: %d\n", pre.numActions, G.numActions);
-                printf("    difference should be 1 due to playing %s taking one of the two added actions.\n", TESTCARD);
-                incorrectActionCountErrorCount++;
+        if(treasureCountPost != treasureCountPre + 2 && !emptyDeck) {
+            if(failedToDrawErrorCount < 10) {
+                printf("FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.\n");
+                printf("    Test #%d\n", tests_done);
+                failedToDrawErrorCount++;
             }
             errorCount++;
         }
 
-        preTotalCards = pre.handCount[p] + pre.deckCount[p] + pre.discardCount[p] + pre.playedCardCount;
-        postTotalCards = G.handCount[p] + G.deckCount[p] + G.discardCount[p] + G.playedCardCount;
+        if(G.handCount[p] != pre.handCount[p] + 2) {
+            if(drewTooManyErrorCount < 10) {
+                printf("FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.\n");
+                printf("    pre: %d post: %d\n", pre.handCount[p], G.handCount[p]);
+                printf("    emptyDeck: %d\n", emptyDeck);
+                printf("    Test #%d\n", tests_done);
+                drewTooManyErrorCount++;
+            }
+            errorCount++;
+        }
+
+        if(r != 0) {
+            printf("FAILED TEST: playing card adventurer resulted in nonzero return code, should always return 0.\n");
+            printf("    Test #%d\n", tests_done);
+            errorCount++;
+        }
+
+        preTotalCards = pre.handCount[p] + pre.deckCount[p] + pre.discardCount[p];
+        postTotalCards = G.handCount[p] + G.deckCount[p] + G.discardCount[p];
 
         if(preTotalCards != postTotalCards) {
             if(totalCardsErrCount < 10) {
-                printf("FAILED TEST: playing card %s changed the total number of cards in player %d's deck, hand, and discard.\n", TESTCARD, p);
-                printf("    had %d cards before playing %s. post: %d\n", preTotalCards, TESTCARD, postTotalCards);
+                printf("FAILED TEST: playing card adventurer changed the total number of cards in player %d's deck, hand, and discard.\n", p);
+                printf("    had %d cards before playing adventurer. post: %d\n", preTotalCards, postTotalCards);
                 printf("    Test #%d\n", tests_done);
                 totalCardsErrCount++;
             }
