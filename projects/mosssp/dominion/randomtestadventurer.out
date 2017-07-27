@@ -1,0 +1,109 @@
+randomcardtest2.c:
+On test 0 of 1000000
+FAILED TEST: playing card adventurer changed the total number of cards in player 1's deck, hand, and discard.
+    had 328 cards before playing adventurer. post: 327
+    Test #0
+FAILED TEST: playing card adventurer changed the total number of cards in player 1's deck, hand, and discard.
+    had 533 cards before playing adventurer. post: 532
+    Test #1
+FAILED TEST: playing card adventurer changed the total number of cards in player 0's deck, hand, and discard.
+    had 467 cards before playing adventurer. post: 466
+    Test #2
+FAILED TEST: playing card adventurer changed the total number of cards in player 2's deck, hand, and discard.
+    had 407 cards before playing adventurer. post: 406
+    Test #3
+FAILED TEST: playing card adventurer changed the total number of cards in player 0's deck, hand, and discard.
+    had 316 cards before playing adventurer. post: 315
+    Test #4
+FAILED TEST: playing card adventurer changed the total number of cards in player 0's deck, hand, and discard.
+    had 675 cards before playing adventurer. post: 674
+    Test #5
+FAILED TEST: playing card adventurer changed the total number of cards in player 1's deck, hand, and discard.
+    had 143 cards before playing adventurer. post: 142
+    Test #6
+FAILED TEST: playing card adventurer changed the total number of cards in player 0's deck, hand, and discard.
+    had 182 cards before playing adventurer. post: 181
+    Test #7
+FAILED TEST: playing card adventurer changed the total number of cards in player 0's deck, hand, and discard.
+    had 257 cards before playing adventurer. post: 256
+    Test #9
+FAILED TEST: playing card adventurer changed the total number of cards in player 1's deck, hand, and discard.
+    had 528 cards before playing adventurer. post: 527
+    Test #10
+FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.
+    Test #973
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 49 post: 50
+    emptyDeck: 0
+    Test #973
+FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.
+    Test #1251
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 3 post: 2
+    emptyDeck: 0
+    Test #1251
+FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.
+    Test #1674
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 315 post: 316
+    emptyDeck: 0
+    Test #1674
+FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.
+    Test #2692
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 304 post: 305
+    emptyDeck: 0
+    Test #2692
+FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.
+    Test #3074
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 6 post: 5
+    emptyDeck: 0
+    Test #3074
+FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.
+    Test #5732
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 286 post: 287
+    emptyDeck: 0
+    Test #5732
+FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.
+    Test #6211
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 6 post: 6
+    emptyDeck: 0
+    Test #6211
+FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.
+    Test #11214
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 37 post: 38
+    emptyDeck: 0
+    Test #11214
+FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.
+    Test #15632
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 5 post: 6
+    emptyDeck: 0
+    Test #15632
+FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.
+    Test #19535
+FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.
+    pre: 80 post: 81
+    emptyDeck: 0
+    Test #19535
+On test 100000 of 1000000
+On test 200000 of 1000000
+On test 300000 of 1000000
+On test 400000 of 1000000
+On test 500000 of 1000000
+On test 600000 of 1000000
+On test 700000 of 1000000
+On test 800000 of 1000000
+On test 900000 of 1000000
+Tests for adventurer card completed. 889321 total errors, 889291 suppressed.Processing file 1 out of 1
+File 'dominion.c'
+Lines executed:27.87% of 610
+Branches executed:27.58% of 417
+Taken at least once:21.58% of 417
+Calls executed:21.00% of 100
+Creating 'dominion.c.gcov'
+
