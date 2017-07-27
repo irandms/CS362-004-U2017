@@ -62,6 +62,21 @@ randomtestcard2: randomtestcard2.c dominion.o
 randomtestadventurer: randomtestadventurer.c dominion.o
 	gcc -o randomtestadventurer -g randomtestadventurer.c dominion.o rngs.o $(CFLAGS)
 
+randomtestcard1.out: randomtestcard1
+	echo "randomcardtest1.c:" > randomtestcard1.out
+	./randomtestcard1 >> randomtestcard1.out
+	gcov -abcd dominion.c >> randomtestcard1.out
+
+randomtestcard2.out: randomtestcard2
+	echo "randomcardtest2.c:" > randomtestcard2.out
+	./randomtestcard2 >> randomtestcard2.out
+	gcov -abcd dominion.c >> randomtestcard2.out
+
+randomtestadventurer.out: randomtestadventurer
+	echo "randomcardtest2.c:" > randomtestadventurer.out
+	./randomtestadventurer >> randomtestadventurer.out
+	gcov -abcd dominion.c >> randomtestadventurer.out
+
 randomtestresults.out: randomtestcard1 randomtestcard2 randomtestadventurer
 	echo "Results for random card tests 1-3 generated in randomtestresults.out"
 	echo "randomcardtest1.c:" > randomtestresults.out
