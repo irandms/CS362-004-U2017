@@ -1,124 +1,102 @@
-#include "testhelper.h"
+/*
+ * cardtest2.c
+ */
 
-void testSalvager() {
-	struct gameState baseState2P = {0}; // will store a basic initialized gamestate with 2 players
-	struct gameState baseState3P = { 0 }; // will store a basic initialized gamestate with 3 players
-	struct gameState baseState4P = { 0 }; // will store a basic initialized gamestate with 4 players
-	struct gameState pretestState; // will store the current test case's pre-test gameState
-	struct gameState posttestState; // will store the current test case's post-test gameState
-	struct stateExpectations emptyExpectations = { 0 }; // empty expectation struct is copied whenever one is needed
-	struct stateExpectations curTestExpectations; // will store the current test case's expectation data
-	// below values are used to set up the initialized base gamestates:
-	int kingdomCards[10] = { adventurer, gardens, embargo, village, minion, mine, cutpurse, sea_hag, tribute, smithy };
-	int randomSeed = 1627;
+#include "dominion.h"
+#include "dominion_helpers.h"
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
+#include "rngs.h"
+#include <stdlib.h>
 
-	// populates the members of the base gameState structs as if game were beginning
-	initializeGame(2, kingdomCards, randomSeed, &baseState2P);
-	initializeGame(3, kingdomCards, randomSeed, &baseState3P);
-	initializeGame(4, kingdomCards, randomSeed, &baseState4P);
+#define TESTCARD "council_room"
 
+int main() {
+    int seed = 1234;
+    int choice1 = 0;
+    int choice2 = 0;
+    int choice3 = 0;
+    int p;
+    int r;
+    int i;
+    int numPlayers = 2;
+    int emptyDeck;
+    int preTotalCards;
+    int postTotalCards;
 
-	// TEST CASE: Salvage No-Cost Card (cardtest4.c; Salvager)
-	memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations)); // zero out test's expectations
-	memcpy(&pretestState, &baseState3P, sizeof(struct gameState)); // reset pretestState to be same as base gamestate (3P)
+	struct gameState G, pre;
+	int k[10] = {adventurer, 
+	             embargo, 
+	             village, 
+	             minion, 
+	             mine, 
+	             cutpurse,
+	             sea_hag, 
+	             tribute, 
+	             smithy, 
+	             council_room
+	            };
 
-	// Define this test case's expected gamestate changes by populating the expectation struct
-	curTestExpectations.testTitle = "Salvage No-Cost Card (cardtest4.c; Salvager)";
-	curTestExpectations.testDescription = "Player 1 of a 3-player game plays salvager.\n"
-		"They choose to trash a card worth 0 coins; they should gain a buy and no coins for the turn.";
-	curTestExpectations.change_numBuys = 1; // Player should gain one buy
-	curTestExpectations.change_hand[1] = 1; // Player's hand should change
-	curTestExpectations.change_handCount[1] = -2; // Player trashes one, and plays one
-	curTestExpectations.change_playedCards = 1; // Played cards should change
-	curTestExpectations.change_playedCardCount = 1; // 1 card is played
-	curTestExpectations.expected_return = 0;
+	// initialize a game state and player cards
+	for(p = 0; p < numPlayers; p++) {
+	    for(emptyDeck = 0; emptyDeck < 2; emptyDeck++) {
+            memset(&G, 0, sizeof(struct gameState));
+            initializeGame(numPlayers, k, seed, &G);
 
-	// Modify the pretest gameState as needed for this particular test case
-	pretestState.whoseTurn = 1;
-	pretestState.hand[1][0] = salvager;
-	pretestState.hand[1][1] = copper;
-	pretestState.handCount[1] = 2;
+            G.whoseTurn = p;
+            G.hand[p][0] = council_room; 
+            if(emptyDeck) {
+                G.deckCount[p] = 0;
+            }
 
-	// Copy the finished pretest gameState into posttestState
-	memcpy(&posttestState, &pretestState, sizeof(struct gameState));
+            memcpy(&pre, &G, sizeof(struct gameState));
 
-	// Perform the test action, which will modify posttestState
-	curTestExpectations.actual_return = cardEffect(salvager, 1, 0, 0, &posttestState, 0, 0);
+            r = playCard(0, choice1, choice2, choice3, &G);
 
-	// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-	evaluateTest(&pretestState, &posttestState, &curTestExpectations);
+            if(G.handCount[p] != (pre.handCount[p] + 3) && !emptyDeck) {
+                printf("FAILED TEST: playing card %s did not changeplayer %d's handCount. They should have drawn 4 cards and discarded village for a net +3 change.\n", TESTCARD, p);
+                printf("    pre: %d post: %d\n", pre.handCount[p], G.handCount[p]);
+                printf("    emptyDeck: %d\n", emptyDeck);
+            }
 
+            if(G.numBuys != pre.numBuys + 1) {
+                printf("FAILED TEST: playing card %s did not result in numBuys increasing by 1.\n", TESTCARD);
+                printf("    pre: %d post: %d\n", pre.numBuys, G.numBuys);
+            }
 
-	// TEST CASE: Salvage Cheap Card (cardtest4.c; Salvager)
-	memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations)); // zero out test's expectations
-	memcpy(&pretestState, &baseState3P, sizeof(struct gameState)); // reset pretestState to be same as base gamestate (3P)
+            if(r != 0) {
+                printf("FAILED TEST: playing card %s resulted in nonzero return code, should always return 0.\n", TESTCARD);
+            }
 
-	// Define this test case's expected gamestate changes by populating the expectation struct
-	curTestExpectations.testTitle = "Salvage Cheap Card (cardtest4.c; Salvager)";
-	curTestExpectations.testDescription = "Player 1 of a 3-player game plays salvager.\n"
-		"They choose to trash a card worth 2 coins; they should gain a buy and 2 coins for the turn.";
-	curTestExpectations.change_numBuys = 1; // Player should gain one buy
-	curTestExpectations.change_coins = 2; // Player should gain two coins
-	curTestExpectations.change_hand[1] = 1; // Player's hand should change
-	curTestExpectations.change_handCount[1] = -2; // Player trashes one, and plays one
-	curTestExpectations.change_playedCards = 1; // Played cards should change
-	curTestExpectations.change_playedCardCount = 1; // 1 card is played
-	curTestExpectations.expected_return = 0;
+            preTotalCards = pre.handCount[p] + pre.deckCount[p] + pre.discardCount[p] + pre.playedCardCount;
+            postTotalCards = G.handCount[p] + G.deckCount[p] + G.discardCount[p] + G.playedCardCount;
 
-	// Modify the pretest gameState as needed for this particular test case
-	pretestState.whoseTurn = 1;
-	pretestState.hand[1][0] = estate;
-	pretestState.hand[1][1] = salvager;
-	pretestState.handCount[1] = 2;
+            if(preTotalCards != postTotalCards) {
+                printf("FAILED TEST: playing card %s changed the total number of cards in player %d's deck, hand, and discard.\n", TESTCARD, p);
+                printf("    had %d cards before playing %s. post: %d\n", preTotalCards, TESTCARD, postTotalCards);
+            }
 
-	// Copy the finished pretest gameState into posttestState
-	memcpy(&posttestState, &pretestState, sizeof(struct gameState));
+            // Validate that other players' data is unchanged.
+            for(i = 0; i < numPlayers; i++) {
+                if(i != p) {
+                    if(G.handCount[i] != pre.handCount[i] + 1) {
+                        printf("FAILED TEST: handCount for player %d who did not play %s did not increase after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    }
+                    if(G.deckCount[i] != pre.deckCount[i] - 1) {
+                        printf("FAILED TEST: deckCount for player %d who did not play %s did not decrease after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    }
+                    if(G.discardCount[i] != pre.discardCount[i]) {
+                        printf("FAILED TEST: discardCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    }
+                }
+            }
+        }
+    }
 
-	// Perform the test action, which will modify posttestState
-	curTestExpectations.actual_return = cardEffect(salvager, 0, 0, 0, &posttestState, 0, 0);
+    printf("Tests for %s card completed.", TESTCARD);
 
-	// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-	evaluateTest(&pretestState, &posttestState, &curTestExpectations);
-
-
-	// TEST CASE: Salvage Expensive (cardtest4.c; Salvager)
-	memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations)); // zero out test's expectations
-	memcpy(&pretestState, &baseState3P, sizeof(struct gameState)); // reset pretestState to be same as base gamestate (3P)
-
-																   // Define this test case's expected gamestate changes by populating the expectation struct
-	curTestExpectations.testTitle = "Salvage Expensive Card (cardtest4.c; Salvager)";
-	curTestExpectations.testDescription = "Player 1 of a 3-player game plays salvager.\n"
-		"They choose to trash a card worth 0 coins; they should gain a buy and no coins for the turn.";
-	curTestExpectations.change_numBuys = 1; // Player should gain one buy
-	curTestExpectations.change_coins = 6; // Player should gain six coins
-	curTestExpectations.change_hand[1] = 1; // Player's hand should change
-	curTestExpectations.change_handCount[1] = -2; // Player trashes one, and plays one
-	curTestExpectations.change_playedCards = 1; // Played cards should change
-	curTestExpectations.change_playedCardCount = 1; // 1 card is played
-	curTestExpectations.expected_return = 0;
-
-	// Modify the pretest gameState as needed for this particular test case
-	pretestState.whoseTurn = 1;
-	pretestState.hand[1][0] = salvager;
-	pretestState.hand[1][1] = gold;
-	pretestState.handCount[1] = 2;
-
-	// Copy the finished pretest gameState into posttestState
-	memcpy(&posttestState, &pretestState, sizeof(struct gameState));
-
-	// Perform the test action, which will modify posttestState
-	curTestExpectations.actual_return = cardEffect(salvager, 1, 0, 0, &posttestState, 0, 0);
-
-	// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-	evaluateTest(&pretestState, &posttestState, &curTestExpectations);
-
-
-	
-}
-
-
-int main(int argc, char *argv[])
-{
-	testSalvager();
 	return 0;
 }
+
+

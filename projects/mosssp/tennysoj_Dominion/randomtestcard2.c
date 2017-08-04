@@ -1,121 +1,227 @@
-#include "randTestHelper.h"
+#include "dominion.h"
+#include "dominion_helpers.h"
+#include "rngs.h"
+#include <assert.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-void testVillage() {
-	struct gameState *pretestState; // Will point to the randomly generated gameState
-	struct gameState posttestState; // Will store the post-test gameState
-	struct stateExpectations emptyExpectations = { 0 }; // empty expectation struct is copied whenever one is needed
-	struct stateExpectations curTestExpectations; // will store the current test case's expectation data
-	int whoseTurn; // tracks the number of the current turn's player from pretestState
-	int handPos; // tracks the position of the card-to-be-tested (Village) in the player's hand
-	int cardsFromDeck, cardsFromDiscard; // tracks expected number of cards to be drawn from deck and hand
-	int i; // loop counter
+#define TESTCARD "village"
+#define MAX_TESTS 1000000
 
-	// Seed the random function
-	srand(time(NULL));
+void getRandomKingdom(int *k, int size, int required_card) {
+    memset(k, required_card, size); // all set to village
+    int kingdom_set_cards = 1;
+    int random_num_is_unique = 1;
+    int i;
+    int current_random_num;
 
-	for (i = 1; i <= NUM_TESTS; i++) {
-		// Acquire a gameState with somewhat directed random values
-		pretestState = randGameState();
-		// zero out test's expectations
-		memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations));
+    // Ensure there are no duplicate Kingdom cards
+    // We will exit this loop if kingdom_set_cards is 10 via break construct
+    while(1) {
+        current_random_num = (rand() % 20) + 7; // From adventurer to last Kingdom card
+        random_num_is_unique = 1;
+        for(i = 0; i < 10; i++) {
+            if(k[i] == current_random_num) {
+                random_num_is_unique = 0;
+                break;
+            }
+        }
 
-		// Replace a random card in the current player's hand with a Village (or add it if the hand is empty)
-		whoseTurn = pretestState->whoseTurn;
-		if (!pretestState->handCount[whoseTurn]) {
-			handPos = 0;
-			pretestState->handCount[whoseTurn]++;
-		}
-		else {
-			handPos = randBetween(0, (pretestState->handCount[whoseTurn] - 1));
-		}
-		pretestState->hand[whoseTurn][handPos] = village;
-		// Store the hand position from which the test card was played
-		curTestExpectations.testHandPos = handPos;
+        if(random_num_is_unique) {
+            k[kingdom_set_cards] = current_random_num;
+            kingdom_set_cards++;
+        }
 
-		// Determine the expected changes to gameState when Village is played by the current player
-
-		// If there is at least one card in the player's deck
-		if (pretestState->deckCount[whoseTurn]) {
-			// Then it should be drawn from the deck, and discards won't be touched
-			cardsFromDeck = 1;
-			cardsFromDiscard = 0;
-		}
-		// If there are no cards in the player's deck
-		else {
-			cardsFromDeck = 0;
-			// If there is a card available in the discard pile
-			if (pretestState->discardCount[whoseTurn]) {
-				// Then it is taken from the discard pile (via shuffling into a new deck)
-				cardsFromDiscard = 1;
-			}
-			// If there aren't any discards either
-			else {
-				// Then no cards will be drawn
-				cardsFromDiscard = 0;
-			}
-		}
-
-		// Store the expected changes to gameState after Smithy is played
-		curTestExpectations.testNum = i;
-		// The player's hand should change due to drawing
-		curTestExpectations.change_hand[whoseTurn] = 1;
-		// Hand count should increase by number of cards drawn, but decrease by 1 for the Village that is played
-		curTestExpectations.change_handCount[whoseTurn] = (cardsFromDeck + cardsFromDiscard) - 1;
-		// If at least one card was in the discard and then got shuffled into the deck
-		if (cardsFromDiscard) {
-			// Then both the discard pile and deck should have changed
-			curTestExpectations.change_discard[whoseTurn] = 1;
-			curTestExpectations.change_deck[whoseTurn] = 1;
-			// All discards would have been shuffled into the deck
-			curTestExpectations.change_discardCount[whoseTurn] = -1 * pretestState->discardCount[whoseTurn];
-			// The discards that were shuffled into the deck but not drawn cause the deck count to increase
-			curTestExpectations.change_deckCount[whoseTurn] = ((-1 * cardsFromDeck) +
-				(pretestState->discardCount[whoseTurn] - cardsFromDiscard));
-		}
-		// If the discards were not shuffled into the deck
-		else {
-			// Deck count should decrease by number of cards taken from the deck
-			curTestExpectations.change_deckCount[whoseTurn] = -1 * cardsFromDeck;
-		}
-		// Village should also always grant +2 actions
-		curTestExpectations.change_numActions = 2;
-		// The player's played set may or may not change
-		curTestExpectations.change_playedCards = 999;
-		// The player's played card count should increase by 1
-		curTestExpectations.change_playedCardCount = 1;
-		// The return value should be 0
-		curTestExpectations.expected_return = 0;
-		curTestExpectations.cardTested = village;
-
-		// Copy the finished pretest gameState into posttestState
-		memcpy(&posttestState, pretestState, sizeof(struct gameState));
-
-		// Perform the test action, which will modify posttestState
-		curTestExpectations.actual_return = cardEffect(village, 0, 0, 0, &posttestState, handPos, 0);
-
-		// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-		evaluateTest(pretestState, &posttestState, &curTestExpectations);
-
-		// Free the gameState allocated and returned by randGameState()
-		free(pretestState);
-	}
+        if(kingdom_set_cards == 10) {
+            break;
+        }
+    }
 }
 
+void randomizeDecksHandsDiscards(struct gameState *G, int *k, int numPlayers) {
+    int i, p;
 
-int main(int argc, char *argv[])
-{
-	struct timespec start, stop; // used to measure how long running the tests takes
+    enum { KINGDOM_C, TREASURE_C, VICTORY_C , NUM_CARD_TYPES };
 
-	// Store the time before running the tests
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    // Randomize deck and hands
+    for(p = 0; p < numPlayers; p++) {
 
-	testVillage();
+        // Set deck and discard
+        G->deckCount[p] = 1 + rand() % MAX_DECK;
+        G->discardCount[p] = 1 + rand() % MAX_DECK;
 
-	// Store the time after running the tests
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
+        for(i = 0; i < G->deckCount[p]; i++) {
+            int card_type = rand() % NUM_CARD_TYPES;
+            switch(card_type) {
+                case KINGDOM_C:
+                    G->deck[p][i] = k[rand() % 10];
+                    break;
+                case TREASURE_C:
+                    G->deck[p][i] = copper + rand() % 3;
+                    break;
+                case VICTORY_C:
+                    G->deck[p][i] = estate + rand() % 3;
+                default:
+                    break;
+            }
+        }
 
-	// Print the time that elapsed
-	printf("RANDOM TESTS FINISHED. TIME TAKEN: %d seconds.\n", (int)(stop.tv_sec - start.tv_sec));
+        for(i = 0; i < G->discardCount[p]; i++) {
+            int card_type = rand() % NUM_CARD_TYPES;
+            switch(card_type) {
+                case KINGDOM_C:
+                    G->discard[p][i] = k[rand() % 10];
+                    break;
+                case TREASURE_C:
+                    G->discard[p][i] = copper + rand() % 3;
+                    break;
+                case VICTORY_C:
+                    G->discard[p][i] = estate + rand() % 3;
+                default:
+                    break;
+            }
+        }
 
-	return 0;
+        // Set hands
+        int handCount = rand() % G->deckCount[p];
+        for(i = 0; i < handCount ; i++) {
+            drawCard(p, G);
+        }
+    }
+}
+
+void randomInitialize(struct gameState *G, int seed) {
+    int i,j;
+    int numPlayers = 2 + rand() % 2;
+
+    int k[10];
+    getRandomKingdom(k, 10, village);
+
+    memset(G, 0, sizeof(struct gameState));
+    initializeGame(numPlayers, k, seed, G);
+
+    // Randomize treasure supply values
+    int cur_copper = G->supplyCount[copper];
+    G->supplyCount[copper] -= rand() % (cur_copper+1);
+    G->supplyCount[silver] -= rand() % 41;
+    G->supplyCount[gold]  -= rand() % 31;
+
+    // Randomize kingdom supply values
+    for(i = adventurer; i <= treasure_map; i++) {
+        for(j = 0; j < 10; j++) {
+            if(k[j] == i) {
+                G->supplyCount[i] = rand() % 11;
+            }
+        }
+    }
+
+    randomizeDecksHandsDiscards(G, k, numPlayers);
+}
+
+int main() {
+    int seed = 1234;
+    srand(seed);
+
+    struct gameState G; 
+    struct gameState pre; 
+    int i;
+    int r;
+    int p;
+    int preTotalCards;
+    int postTotalCards;
+
+    int choice1 = 0;
+    int choice2 = 0;
+    int choice3 = 0;
+    int handPos = 0;
+    int bonus = 0;
+
+    int tests_done = 0;
+
+    int totalCardsErrCount = 0;
+    int failedToDrawErrorCount = 0;
+    int drewTooManyErrorCount = 0;
+    int incorrectActionCountErrorCount = 0;
+    int errorCount = 0;
+
+    for(tests_done = 0; tests_done < MAX_TESTS; tests_done++) {
+        if( (tests_done % 100000) == 0 ) {
+            printf("On test %d of %d\n", tests_done, MAX_TESTS);
+        }
+
+        randomInitialize(&G, seed);
+        p = rand() % G.numPlayers;
+        G.whoseTurn = p;
+        if( G.handCount[p] > 0 ) {
+            handPos = rand() % G.handCount[p];
+            G.hand[p][handPos] = village;
+        }
+        memcpy(&pre, &G, sizeof(struct gameState));
+
+        // TESTS
+
+        r = cardEffect(village, choice1, choice2, choice3, &G, handPos, &bonus);
+
+        if(r != 0) {
+            printf("FAILED TEST: playing card %s resulted in nonzero return code, should always return 0.\n", TESTCARD);
+            printf("    Test #%d\n", tests_done);
+            errorCount++;
+        }
+
+        if(G.handCount[p] != pre.handCount[p] && (G.deckCount[p] > 0)) {
+            printf("FAILED TEST: playing card %s did not changeplayer %d's handCount. They should have drawn 1 card and discarded village for a net 0 change.\n", TESTCARD, p);
+            printf("    pre: %d post: %d\n", pre.handCount[p], G.handCount[p]);
+            printf("    Deck is not empty.\n");
+        }
+
+        if(G.numActions != pre.numActions + 1) {
+            if(incorrectActionCountErrorCount < 10) {
+                printf("FAILED TEST: playing card %s did not result in numActions increasing by two.\n", TESTCARD);
+                printf("    pre: %d post: %d\n", pre.numActions, G.numActions);
+                printf("    difference should be 1 due to playing %s taking one of the two added actions.\n", TESTCARD);
+                incorrectActionCountErrorCount++;
+            }
+            errorCount++;
+        }
+
+        preTotalCards = pre.handCount[p] + pre.deckCount[p] + pre.discardCount[p] + pre.playedCardCount;
+        postTotalCards = G.handCount[p] + G.deckCount[p] + G.discardCount[p] + G.playedCardCount;
+
+        if(preTotalCards != postTotalCards) {
+            if(totalCardsErrCount < 10) {
+                printf("FAILED TEST: playing card %s changed the total number of cards in player %d's deck, hand, and discard.\n", TESTCARD, p);
+                printf("    had %d cards before playing %s. post: %d\n", preTotalCards, TESTCARD, postTotalCards);
+                printf("    Test #%d\n", tests_done);
+                totalCardsErrCount++;
+            }
+            errorCount++;
+        }
+
+        // Validate that other players' data is unchanged.
+        for(i = 0; i < G.numPlayers; i++) {
+            if(i != p) {
+                if(G.handCount[i] != pre.handCount[i]) {
+                    printf("FAILED TEST: handCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    printf("    Test #%d\n", tests_done);
+                    errorCount++;
+                }
+                if(G.deckCount[i] != pre.deckCount[i]) {
+                    printf("FAILED TEST: deckCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    printf("    Test #%d\n", tests_done);
+                    errorCount++;
+                }
+                if(G.discardCount[i] != pre.discardCount[i]) {
+                    printf("FAILED TEST: discardCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    printf("    Test #%d\n", tests_done);
+                    errorCount++;
+                }
+            }
+        }
+    }
+
+    printf("Tests for %s card completed. %d total errors, %d suppressed.", TESTCARD, errorCount, errorCount - totalCardsErrCount - failedToDrawErrorCount - drewTooManyErrorCount);
+
+    return 0;
 }

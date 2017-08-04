@@ -1,164 +1,131 @@
-#include "testhelper.h"
+/*
+ * cardtest2.c
+ */
 
-void testSmithy() {
-	struct gameState baseState2P = {0}; // will store a basic initialized gamestate with 2 players
-	struct gameState baseState3P = { 0 }; // will store a basic initialized gamestate with 3 players
-	struct gameState baseState4P = { 0 }; // will store a basic initialized gamestate with 4 players
-	struct gameState pretestState; // will store the current test case's pre-test gameState
-	struct gameState posttestState; // will store the current test case's post-test gameState
-	struct stateExpectations emptyExpectations = { 0 }; // empty expectation struct is copied whenever one is needed
-	struct stateExpectations curTestExpectations; // will store the current test case's expectation data
-	int i; // loop counter
-	// below values are used to set up the initialized base gamestates:
-	int kingdomCards[10] = { adventurer, gardens, embargo, village, minion, mine, cutpurse, sea_hag, tribute, smithy };
-	int randomSeed = 9422;
+#include "dominion.h"
+#include "dominion_helpers.h"
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
+#include "rngs.h"
+#include <stdlib.h>
 
-	// populates the members of the base gameState structs as if game were beginning
-	initializeGame(2, kingdomCards, randomSeed, &baseState2P);
-	initializeGame(3, kingdomCards, randomSeed, &baseState3P);
-	initializeGame(4, kingdomCards, randomSeed, &baseState4P);
+#define TESTCARD "adventurer"
 
+int main() {
+    int seed = 1234;
+    int choice1 = 0;
+    int choice2 = 0;
+    int choice3 = 0;
+    int bonus = 0;
+    int p;
+    int r;
+    int i;
+    int handPos = 0;
+    int numPlayers = 2;
+    int treasureCountPre;
+    int treasureCountPost;
+    int emptyDeck;
+    int preTotalCards;
+    int postTotalCards;
 
-	// TEST CASE: Drawing with Smithy (cardtest2.c; Smithy)
-	memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations)); // zero out test's expectations
-	memcpy(&pretestState, &baseState2P, sizeof(struct gameState)); // reset pretestState to be same as base gamestate (2P)
+	struct gameState G, pre;
+	int k[10] = {adventurer, 
+	             embargo, 
+	             village, 
+	             minion, 
+	             mine, 
+	             cutpurse,
+	             sea_hag, 
+	             tribute, 
+	             smithy, 
+	             council_room
+	            };
 
-	// Define this test case's expected gamestate changes by populating the expectation struct
-	curTestExpectations.testTitle = "Drawing with Smithy (cardtest2.c; Smithy)";
-	curTestExpectations.testDescription = "Player 1 of a 2-player game plays smithy.\n"
-		"Three cards should be drawn from their deck.";
-	curTestExpectations.change_hand[1] = 1; // Player 1's hand should change due to drawing three cards
-	curTestExpectations.change_handCount[1] = 2; // Player 1's hand count should increase by 2 (+3 draw -1 discarding smithy)
-	curTestExpectations.change_deckCount[1] = -3; // Player 1's deck count should decrease by 3
-	curTestExpectations.change_playedCards = 1; // Player 1's played set should change due to use of discardCard
-	curTestExpectations.change_playedCardCount = 1;
-	curTestExpectations.expected_return = 0;
+	// initialize a game state and player cards
+	for(p = 0; p < numPlayers; p++) {
+	    for(emptyDeck = 0; emptyDeck < 2; emptyDeck++) {
+            memset(&G, 0, sizeof(struct gameState));
+            initializeGame(numPlayers, k, seed, &G);
 
-	// Modify the pretest gameState as needed for this particular test case
-	int testDeck1[5] = { copper, gold, estate, minion, cutpurse };
-	for (i = 0; i < 5; i++) {
-		pretestState.deck[1][i] = testDeck1[i];
-	}
-	pretestState.deckCount[1] = 5;
-	pretestState.whoseTurn = 1;
-	pretestState.hand[1][0] = smithy;
+            G.whoseTurn = p;
+            if(emptyDeck) {
+                G.deckCount[p] = 0;
+            }
+            memcpy(&pre, &G, sizeof(struct gameState));
 
-	// Copy the finished pretest gameState into posttestState
-	memcpy(&posttestState, &pretestState, sizeof(struct gameState));
+            treasureCountPre = 0;
+            for(i = 0; i < G.handCount[p]; i++) {
+                switch(G.hand[p][i]) {
+                    case copper:
+                    case silver:
+                    case gold:
+                        treasureCountPre++;
+                    default:
+                        break;
+                }
+            }
 
-	// Perform the test action, which will modify posttestState
-	curTestExpectations.actual_return = cardEffect(smithy, 0, 0, 0, &posttestState, 0, 0);
+            r = cardEffect(adventurer, choice1, choice2, choice3, &G, handPos, &bonus);
 
-	// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-	evaluateTest(&pretestState, &posttestState, &curTestExpectations);
+            treasureCountPost = 0;
+            for(i = 0; i < G.handCount[p]; i++) {
+                switch(G.hand[p][i]) {
+                    case copper:
+                    case silver:
+                    case gold:
+                        treasureCountPost++;
+                    default:
+                        break;
+                }
+            }
 
+            if(treasureCountPost != treasureCountPre + 2 && !emptyDeck) {
+                printf("FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.\n");
+            }
 
-	// TEST CASE: Smithy With Empty Deck (cardtest2.c; Smithy)
-	memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations)); // zero out test's expectations
-	memcpy(&pretestState, &baseState3P, sizeof(struct gameState)); // reset pretestState to be same as base gamestate (3P)
+            if(G.handCount[p] != pre.handCount[p] + 2) {
+                printf("FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.\n");
+                printf("    pre: %d post: %d\n", pre.handCount[p], G.handCount[p]);
+                printf("    emptyDeck: %d\n", emptyDeck);
+            }
 
-	// Define this test case's expected gamestate changes by populating the expectation struct
-	curTestExpectations.testTitle = "Smithy With Empty Deck (cardtest2.c; Smithy)";
-	curTestExpectations.testDescription = "Player 1 of a 3-player game plays smithy.\n"
-		"Their deck is empty, but they have three discards. Those discards should move to the deck and be drawn.";
-	curTestExpectations.change_hand[1] = 1; // Player 1's hand should change due to drawing three cards
-	curTestExpectations.change_handCount[1] = 2; // Player 1's hand count should increase by 2 (+3 draw -1 discarding smithy)
-	curTestExpectations.change_playedCards = 1; // Player 1's played set should change due to use of discardCard
-	curTestExpectations.change_playedCardCount = 1;
-	curTestExpectations.change_discard[1] = 1; // Player 1's discard pile should change due to shuffle
-	curTestExpectations.change_discardCount[1] = -3; // All 3 cards in discard should be removed from discard pile
-	curTestExpectations.change_deck[1] = 1; // Player 1's deck should change due to shuffle
-	curTestExpectations.expected_return = 0;
+            if(r != 0) {
+                printf("FAILED TEST: playing card adventurer resulted in nonzero return code, should always return 0.\n");
+            }
 
-	// Modify the pretest gameState as needed for this particular test case
-	int testDeck2[3] = { copper, gold, estate };
-	for (i = 0; i < 3; i++) {
-		pretestState.discard[1][i] = testDeck2[i];
-	}
-	pretestState.discardCount[1] = 3;
-	pretestState.deckCount[1] = 0;
-	pretestState.whoseTurn = 1;
-	pretestState.hand[1][0] = smithy;
+            preTotalCards = pre.handCount[p] + pre.deckCount[p] + pre.discardCount[p];
+            postTotalCards = G.handCount[p] + G.deckCount[p] + G.discardCount[p];
 
-	// Copy the finished pretest gameState into posttestState
-	memcpy(&posttestState, &pretestState, sizeof(struct gameState));
+            if(preTotalCards != postTotalCards) {
+                printf("FAILED TEST: playing card adventurer changed the total number of cards in player %d's deck, hand, and discard.\n", p);
+                printf("    had %d cards before playing adventurer. post: %d\n", preTotalCards, postTotalCards);
+            }
 
-	// Perform the test action, which will modify posttestState
-	curTestExpectations.actual_return = cardEffect(smithy, 0, 0, 0, &posttestState, 0, 0);
+            // Dont check that the card at handPos is no longer Smithy,
+            // as it is possible to draw a new Smithy card and have it
+            // swapped to that location.
 
-	// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-	evaluateTest(&pretestState, &posttestState, &curTestExpectations);
+            // Validate that other players' data is unchanged.
+            for(i = 0; i < numPlayers; i++) {
+                if(i != p) {
+                    if(G.handCount[i] != pre.handCount[i]) {
+                        printf("FAILED TEST: handCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    }
+                    if(G.deckCount[i] != pre.deckCount[i]) {
+                        printf("FAILED TEST: deckCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    }
+                    if(G.discardCount[i] != pre.discardCount[i]) {
+                        printf("FAILED TEST: discardCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    }
+                }
+            }
+        }
+    }
 
+    printf("Tests for %s card completed.", TESTCARD);
 
-	// TEST CASE: Smithy With Empty Deck and Discards (cardtest2.c; Smithy)
-	memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations)); // zero out test's expectations
-	memcpy(&pretestState, &baseState3P, sizeof(struct gameState)); // reset pretestState to be same as base gamestate (3P)
-
-	// Define this test case's expected gamestate changes by populating the expectation struct
-	curTestExpectations.testTitle = "Smithy With Empty Deck and Discards (cardtest2.c; Smithy)";
-	curTestExpectations.testDescription = "Player 1 of a 3-player game plays smithy.\n"
-		"Their deck is empty, and they have no discards. No cards should be acquired.";
-	curTestExpectations.change_playedCards = 1; // Player 1's played set should change due to use of discardCard
-	curTestExpectations.change_playedCardCount = 1;
-	curTestExpectations.change_hand[1] = 1; // Player 1's hand should change due to playing their smithy
-	curTestExpectations.change_handCount[1] = -1; // Player 1's hand count should decrease by one (losing smithy)
-	curTestExpectations.expected_return = 0;
-
-	// Modify the pretest gameState as needed for this particular test case
-	pretestState.discardCount[1] = 0;
-	pretestState.deckCount[1] = 0;
-	pretestState.whoseTurn = 1;
-	pretestState.hand[1][0] = smithy;
-
-	// Copy the finished pretest gameState into posttestState
-	memcpy(&posttestState, &pretestState, sizeof(struct gameState));
-
-	// Perform the test action, which will modify posttestState
-	curTestExpectations.actual_return = cardEffect(smithy, 0, 0, 0, &posttestState, 0, 0);
-
-	// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-	evaluateTest(&pretestState, &posttestState, &curTestExpectations);
-
-
-	// TEST CASE: Smithy With 1 Card in Deck, 1 Card in Discard (cardtest2.c; Smithy)
-	memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations)); // zero out test's expectations
-	memcpy(&pretestState, &baseState3P, sizeof(struct gameState)); // reset pretestState to be same as base gamestate (3P)
-
-																   // Define this test case's expected gamestate changes by populating the expectation struct
-	curTestExpectations.testTitle = "Smithy With 1 Card in Deck, 1 Card in Discard (cardtest2.c; Smithy)";
-	curTestExpectations.testDescription = "Player 1 of a 3-player game plays smithy.\n"
-		"Their deck has one card, and they have one discard. Both cards should be acquired.";
-	curTestExpectations.change_playedCards = 1; // Player 1's played set should change due to use of discardCard
-	curTestExpectations.change_playedCardCount = 1;
-	curTestExpectations.change_hand[1] = 1; // Player 1's hand should change
-	curTestExpectations.change_handCount[1] = 1; // Player 1's hand count should increase by 1 (+2 draw, -1 lose smithy)
-	curTestExpectations.change_discard[1] = 1; // Player 1's discard should change due to shuffle
-	curTestExpectations.change_discardCount[1] = -1; // One card is shuffled out of discard pile
-	curTestExpectations.change_deck[1] = 1; // Player 1's deck should change due to shuffle
-	curTestExpectations.change_deckCount[1] = -1; // Deck starts with 1 card and should end with 0
-	curTestExpectations.expected_return = 0;
-
-	// Modify the pretest gameState as needed for this particular test case
-	pretestState.discardCount[1] = 1;
-	pretestState.discard[1][0] = minion;
-	pretestState.deckCount[1] = 1;
-	pretestState.deck[1][0] = cutpurse;
-	pretestState.whoseTurn = 1;
-	pretestState.hand[1][0] = smithy;
-
-	// Copy the finished pretest gameState into posttestState
-	memcpy(&posttestState, &pretestState, sizeof(struct gameState));
-
-	// Perform the test action, which will modify posttestState
-	curTestExpectations.actual_return = cardEffect(smithy, 0, 0, 0, &posttestState, 0, 0);
-
-	// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-	evaluateTest(&pretestState, &posttestState, &curTestExpectations);
-}
-
-
-int main(int argc, char *argv[])
-{
-	testSmithy();
 	return 0;
 }
+
+

@@ -1,181 +1,249 @@
-#include "randTestHelper.h"
+#include "dominion.h"
+#include "dominion_helpers.h"
+#include "rngs.h"
+#include <assert.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
-void testAdventurer() {
-	struct gameState *pretestState; // Will point to the randomly generated gameState
-	struct gameState posttestState; // Will store the post-test gameState
-	struct stateExpectations emptyExpectations = { 0 }; // empty expectation struct is copied whenever one is needed
-	struct stateExpectations curTestExpectations; // will store the current test case's expectation data
-	int whoseTurn; // tracks the number of the current turn's player from pretestState
-	int handPos; // tracks the position of the card-to-be-tested (Adventurer) in the player's hand
-	int deckCopper, deckSilver, deckGold; // tracks quantity of treasures in the deck
-	int discardCopper, discardSilver, discardGold; // tracks quantity of treasures in discards
-	int cardsDiscarded; // tracks the number of non-treasure cards discarded while looking for treasure
-	int i, b; // loop counters
+#define TESTCARD "adventurer"
+#define MAX_TESTS 1000000
 
-	// Seed the random function
-	srand(time(NULL));
+void getRandomKingdom(int *k, int size, int required_card) {
+    memset(k, required_card, size); // all set to adventurer
+    int kingdom_set_cards = 1;
+    int random_num_is_unique = 1;
+    int i;
+    int current_random_num;
 
-	for (i = 1; i <= NUM_TESTS; i++) {
-		// Acquire a gameState with somewhat directed random values
-		pretestState = randGameState();
+    // Ensure there are no duplicate Kingdom cards
+    // We will exit this loop if kingdom_set_cards is 10 via break construct
+    while(1) {
+        current_random_num = (rand() % 20) + 7; // From adventurer to last Kingdom card
+        random_num_is_unique = 1;
+        for(i = 0; i < 10; i++) {
+            if(k[i] == current_random_num) {
+                random_num_is_unique = 0;
+                break;
+            }
+        }
 
-		// zero out test's expectations
-		memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations));
+        if(random_num_is_unique) {
+            k[kingdom_set_cards] = current_random_num;
+            kingdom_set_cards++;
+        }
 
-		// Replace a random card in the current player's hand with an Adventurer (or add it if the hand is empty)
-		whoseTurn = pretestState->whoseTurn;
-		if (!pretestState->handCount[whoseTurn]) {
-			handPos = 0;
-			pretestState->handCount[whoseTurn]++;
-		}
-		else {
-			handPos = randBetween(0, (pretestState->handCount[whoseTurn] - 1));
-		}
-		pretestState->hand[whoseTurn][handPos] = adventurer;
-		// Store the hand position from which the test card was played
-		curTestExpectations.testHandPos = handPos;
-
-		// Determine how many treasures are in the deck, and how many non-treasures must be discarded to get two treasures
-		deckCopper = 0;
-		deckSilver = 0;
-		deckGold = 0;
-		cardsDiscarded = 0;
-		// For each card in the player's deck, from the top (next to be drawn) to the bottom
-		for (b = pretestState->deckCount[whoseTurn] - 1; b >= 0; b--) {
-			if (pretestState->deck[whoseTurn][b] == curse) {
-				pretestState->deck[whoseTurn][b] = adventurer;
-			}
-			if (pretestState->deck[whoseTurn][b] == copper) {
-				deckCopper++;
-			}
-			else if (pretestState->deck[whoseTurn][b] == silver) {
-				deckSilver++;
-			}
-			else if (pretestState->deck[whoseTurn][b] == gold) {
-				deckGold++;
-			}
-			else {
-				// cards are only discarded before two treasures have been revealed
-				if (deckCopper + deckSilver + deckGold < 2) {
-					cardsDiscarded++;
-				}
-			}
-		}
-
-		// Determine how many treasures are in the discard deck
-		discardCopper = 0;
-		discardSilver = 0;
-		discardGold = 0;
-		// For each card in the discard pile
-		for (b = 0; b < pretestState->discardCount[whoseTurn]; b++) {
-			if (pretestState->discard[whoseTurn][b] == curse) {
-				pretestState->discard[whoseTurn][b] = adventurer;
-			}
-			if (pretestState->discard[whoseTurn][b] == copper) {
-				discardCopper++;
-			}
-			else if (pretestState->discard[whoseTurn][b] == silver) {
-				discardSilver++;
-			}
-			else if (pretestState->discard[whoseTurn][b] == gold) {
-				discardGold++;
-			}
-		}
-
-		// There is a flaw in the adventurer functionality that causes an infinite loop (and eventual segfault) when
-		// there are no treasures. If this is the case in the randomly generated pretest gameState,
-		// then that gameState is thrown out and no test is performed
-		if ((deckCopper + deckSilver + deckGold + discardCopper + discardSilver + discardGold) == 0) {
-			free(pretestState);
-			i--;
-			continue;
-		}
-		// The bug I introduced to the adventurer functionality in assignment 1 causes it to consider silver as non-treasure
-		// Thus a segfault will occur for any test case where the use of a silver is required to draw any treasure
-		// These gameStates are thrown out as well
-		if ((deckCopper + deckGold + discardCopper + discardGold) == 0) {
-			free(pretestState);
-			i--;
-			continue;
-		}
-
-		// If two treasures can be drawn without shuffling the discards into the deck
-		if (deckCopper + deckSilver + deckGold >= 2) {
-			// The player's hand should increase by two cards drawn, but also decrease for one card played
-			curTestExpectations.change_handCount[whoseTurn] = 1;
-			curTestExpectations.change_hand[whoseTurn] = 1;
-			// The deck should decrease for two treasures drawn + any non-treasures discarded
-			curTestExpectations.change_deckCount[whoseTurn] = -2 - cardsDiscarded;
-			// The deck array itself may or may not change
-			curTestExpectations.change_deck[whoseTurn] = 999;
-			// The discard pile should increase by the number of cards discarded
-			curTestExpectations.change_discardCount[whoseTurn] = cardsDiscarded;
-			if (cardsDiscarded) {
-				// If any cards were indeed discarded, the discard pile will have changed
-				curTestExpectations.change_discard[whoseTurn] = 1;
-			}
-		}
-		// Else if the discards need to be shuffled in order to reach two treasures
-		else if (deckCopper + deckSilver + deckGold + discardCopper + discardSilver + discardGold >= 2) {
-			// The player's hand should increase by two cards drawn, but also decrease for one card played
-			curTestExpectations.change_handCount[whoseTurn] = 1;
-			curTestExpectations.change_hand[whoseTurn] = 1;
-			// The deck will decrease by an unspecified amount (can't predict the shuffle order)
-			curTestExpectations.change_deckCount[whoseTurn] = 999;
-			curTestExpectations.change_deck[whoseTurn] = 999;
-			// The discard count and contents are also affected in a non-specified way
-			curTestExpectations.change_discardCount[whoseTurn] = 999;
-			curTestExpectations.change_discard[whoseTurn] = 999;
-		}
-		// Else if there is only one treasure card to be had from deck and discards
-		else if (deckCopper + deckSilver + deckGold + discardCopper + discardSilver + discardGold == 1) {
-			// The player's hand count should not change (1 card drawn, but 1 card played)
-			// The player's hand should change due to the draw
-			curTestExpectations.change_hand[whoseTurn] = 1;
-			// The deck will decrease by an unspecified amount (can't predict the shuffle order)
-			curTestExpectations.change_deckCount[whoseTurn] = 999;
-			curTestExpectations.change_deck[whoseTurn] = 999;
-			// The discard count and contents are also affected in a non-specified way
-			curTestExpectations.change_discardCount[whoseTurn] = 999;
-			curTestExpectations.change_discard[whoseTurn] = 999;
-		}
-		// These expectations apply in every case from above
-		curTestExpectations.expected_return = 0;
-		curTestExpectations.cardTested = adventurer;
-		curTestExpectations.testNum = i;
-		// The played cards count should increase by one due to playing adventurer
-		curTestExpectations.change_playedCardCount = 1;
-		curTestExpectations.change_playedCards = 1;
-
-		// Copy the finished pretest gameState into posttestState
-		memcpy(&posttestState, pretestState, sizeof(struct gameState));
-
-		// Perform the test action, which will modify posttestState
-		curTestExpectations.actual_return = cardEffect(adventurer, 0, 0, 0, &posttestState, handPos, 0);
-
-		// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-		evaluateTest(pretestState, &posttestState, &curTestExpectations);
-
-		// Free the gameState allocated and returned by randGameState()
-		free(pretestState);
-	}
+        if(kingdom_set_cards == 10) {
+            break;
+        }
+    }
 }
 
+void randomizeDecksHandsDiscards(struct gameState *G, int *k, int numPlayers) {
+    int i, p;
 
-int main(int argc, char *argv[])
-{
-	struct timespec start, stop; // used to measure how long running the tests takes
+    enum { KINGDOM_C, TREASURE_C, VICTORY_C , NUM_CARD_TYPES };
 
-	// Store the time before running the tests
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    // Randomize deck and hands
+    for(p = 0; p < numPlayers; p++) {
 
-	testAdventurer();
+        // Set deck and discard
+        G->deckCount[p] = 1 + rand() % MAX_DECK;
+        G->discardCount[p] = 1 + rand() % MAX_DECK;
 
-	// Store the time after running the tests
-	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &stop);
+        for(i = 0; i < G->deckCount[p]; i++) {
+            int card_type = rand() % NUM_CARD_TYPES;
+            switch(card_type) {
+                case KINGDOM_C:
+                    G->deck[p][i] = k[rand() % 10];
+                    break;
+                case TREASURE_C:
+                    G->deck[p][i] = copper + rand() % 3;
+                    break;
+                case VICTORY_C:
+                    G->deck[p][i] = estate + rand() % 3;
+                default:
+                    break;
+            }
+        }
 
-	// Print the time that elapsed
-	printf("RANDOM TESTS FINISHED. TIME TAKEN: %d seconds.\n", (int)(stop.tv_sec - start.tv_sec));
+        for(i = 0; i < G->discardCount[p]; i++) {
+            int card_type = rand() % NUM_CARD_TYPES;
+            switch(card_type) {
+                case KINGDOM_C:
+                    G->discard[p][i] = k[rand() % 10];
+                    break;
+                case TREASURE_C:
+                    G->discard[p][i] = copper + rand() % 3;
+                    break;
+                case VICTORY_C:
+                    G->discard[p][i] = estate + rand() % 3;
+                default:
+                    break;
+            }
+        }
 
-	return 0;
+        // Set hands
+        int handCount = rand() % G->deckCount[p];
+        for(i = 0; i < handCount ; i++) {
+            drawCard(p, G);
+        }
+    }
+}
+
+void randomInitialize(struct gameState *G, int seed) {
+    int i,j;
+    int numPlayers = 2 + rand() % 2;
+
+    int k[10];
+    getRandomKingdom(k, 10, adventurer);
+
+    memset(G, 0, sizeof(struct gameState));
+    initializeGame(numPlayers, k, seed, G);
+
+    // Randomize treasure supply values
+    int cur_copper = G->supplyCount[copper];
+    G->supplyCount[copper] -= rand() % (cur_copper+1);
+    G->supplyCount[silver] -= rand() % 41;
+    G->supplyCount[gold]  -= rand() % 31;
+
+    // Randomize kingdom supply values
+    for(i = adventurer; i <= treasure_map; i++) {
+        for(j = 0; j < 10; j++) {
+            if(k[j] == i) {
+                G->supplyCount[i] = rand() % 11;
+            }
+        }
+    }
+
+    randomizeDecksHandsDiscards(G, k, numPlayers);
+}
+
+int countTreasures(struct gameState *G) {
+    int treasureCount = 0;
+    int i;
+
+    for(i = 0; i < G->handCount[G->whoseTurn]; i++) {
+        switch(G->hand[G->whoseTurn][i]) {
+            case copper:
+            case silver:
+            case gold:
+                treasureCount++;
+            default:
+                break;
+        }
+    }
+
+    return treasureCount;
+}
+
+int main() {
+    int seed = 1234;
+    srand(seed);
+
+    struct gameState G; 
+    struct gameState pre; 
+    int i;
+    int r;
+    int p;
+    int treasureCountPre;
+    int treasureCountPost;
+    int preTotalCards;
+    int postTotalCards;
+
+    int choice1 = 0;
+    int choice2 = 0;
+    int choice3 = 0;
+    int handPos = 0;
+    int bonus = 0;
+    int emptyDeck = 0;
+
+    int tests_done = 0;
+
+    int totalCardsErrCount = 0;
+    int failedToDrawErrorCount = 0;
+    int drewTooManyErrorCount = 0;
+    int errorCount = 0;
+
+    for(tests_done = 0; tests_done < MAX_TESTS; tests_done++) {
+        if( (tests_done % 100000) == 0 ) {
+            printf("On test %d of %d\n", tests_done, MAX_TESTS);
+        }
+
+        randomInitialize(&G, seed);
+        p = rand() % G.numPlayers;
+        G.whoseTurn = p;
+        memcpy(&pre, &G, sizeof(struct gameState));
+
+        // TESTS
+
+        treasureCountPre = countTreasures(&G);
+        r = cardEffect(adventurer, choice1, choice2, choice3, &G, handPos, &bonus);
+        treasureCountPost = countTreasures(&G);
+
+        if(treasureCountPost != treasureCountPre + 2 && !emptyDeck) {
+            if(failedToDrawErrorCount < 10) {
+                printf("FAILED TEST: playing card adventurer failed to draw 2 treasure cards in fresh game.\n");
+                printf("    Test #%d\n", tests_done);
+                failedToDrawErrorCount++;
+            }
+            errorCount++;
+        }
+
+        if(G.handCount[p] != pre.handCount[p] + 2) {
+            if(drewTooManyErrorCount < 10) {
+                printf("FAILED TEST: playing card adventurer drew more than 2 cards after discarding non-treasures.\n");
+                printf("    pre: %d post: %d\n", pre.handCount[p], G.handCount[p]);
+                printf("    emptyDeck: %d\n", emptyDeck);
+                printf("    Test #%d\n", tests_done);
+                drewTooManyErrorCount++;
+            }
+            errorCount++;
+        }
+
+        if(r != 0) {
+            printf("FAILED TEST: playing card adventurer resulted in nonzero return code, should always return 0.\n");
+            printf("    Test #%d\n", tests_done);
+            errorCount++;
+        }
+
+        preTotalCards = pre.handCount[p] + pre.deckCount[p] + pre.discardCount[p];
+        postTotalCards = G.handCount[p] + G.deckCount[p] + G.discardCount[p];
+
+        if(preTotalCards != postTotalCards) {
+            if(totalCardsErrCount < 10) {
+                printf("FAILED TEST: playing card adventurer changed the total number of cards in player %d's deck, hand, and discard.\n", p);
+                printf("    had %d cards before playing adventurer. post: %d\n", preTotalCards, postTotalCards);
+                printf("    Test #%d\n", tests_done);
+                totalCardsErrCount++;
+            }
+            errorCount++;
+        }
+
+        // Validate that other players' data is unchanged.
+        for(i = 0; i < G.numPlayers; i++) {
+            if(i != p) {
+                if(G.handCount[i] != pre.handCount[i]) {
+                    printf("FAILED TEST: handCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    printf("    Test #%d\n", tests_done);
+                    errorCount++;
+                }
+                if(G.deckCount[i] != pre.deckCount[i]) {
+                    printf("FAILED TEST: deckCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    printf("    Test #%d\n", tests_done);
+                    errorCount++;
+                }
+                if(G.discardCount[i] != pre.discardCount[i]) {
+                    printf("FAILED TEST: discardCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    printf("    Test #%d\n", tests_done);
+                    errorCount++;
+                }
+            }
+        }
+    }
+
+    printf("Tests for %s card completed. %d total errors, %d suppressed.", TESTCARD, errorCount, errorCount - totalCardsErrCount - failedToDrawErrorCount - drewTooManyErrorCount);
+
+    return 0;
 }

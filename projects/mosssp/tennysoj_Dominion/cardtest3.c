@@ -1,123 +1,103 @@
-#include "testhelper.h"
+/*
+ * cardtest2.c
+ */
 
-void testVillage() {
-	struct gameState baseState2P = {0}; // will store a basic initialized gamestate with 2 players
-	struct gameState baseState3P = { 0 }; // will store a basic initialized gamestate with 3 players
-	struct gameState baseState4P = { 0 }; // will store a basic initialized gamestate with 4 players
-	struct gameState pretestState; // will store the current test case's pre-test gameState
-	struct gameState posttestState; // will store the current test case's post-test gameState
-	struct stateExpectations emptyExpectations = { 0 }; // empty expectation struct is copied whenever one is needed
-	struct stateExpectations curTestExpectations; // will store the current test case's expectation data
-	// below values are used to set up the initialized base gamestates:
-	int kingdomCards[10] = { adventurer, gardens, embargo, village, minion, mine, cutpurse, sea_hag, tribute, smithy };
-	int randomSeed = 4627;
+#include "dominion.h"
+#include "dominion_helpers.h"
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
+#include "rngs.h"
+#include <stdlib.h>
 
-	// populates the members of the base gameState structs as if game were beginning
-	initializeGame(2, kingdomCards, randomSeed, &baseState2P);
-	initializeGame(3, kingdomCards, randomSeed, &baseState3P);
-	initializeGame(4, kingdomCards, randomSeed, &baseState4P);
+#define TESTCARD "village"
 
+int main() {
+    int seed = 1234;
+    int choice1 = 0;
+    int choice2 = 0;
+    int choice3 = 0;
+    int p;
+    int r;
+    int i;
+    int numPlayers = 2;
+    int emptyDeck;
+    int preTotalCards;
+    int postTotalCards;
 
-	// TEST CASE: Basic Village Test (cardtest3.c; Village)
-	memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations)); // zero out test's expectations
-	memcpy(&pretestState, &baseState4P, sizeof(struct gameState)); // reset pretestState to be same as base gamestate (4P)
+	struct gameState G, pre;
+	int k[10] = {adventurer, 
+	             embargo, 
+	             village, 
+	             minion, 
+	             mine, 
+	             cutpurse,
+	             sea_hag, 
+	             tribute, 
+	             smithy, 
+	             council_room
+	            };
 
-	// Define this test case's expected gamestate changes by populating the expectation struct
-	curTestExpectations.testTitle = "Basic Village Test (cardtest3.c; Village)";
-	curTestExpectations.testDescription = "Player 2 of a 4-player game plays village.\n"
-		"They should get two actions and one card (from deck to hand).";
-	curTestExpectations.change_hand[2] = 1; // Player 2's hand should change due to drawing a card
-	// Note that the player's handCount shouldn't change, as they're discarding 1 and drawing 1
-	curTestExpectations.change_deckCount[2] = -1; // Player 2's deck count should decrease by 1
-	curTestExpectations.change_playedCards = 1; // Player 2's played set should change due to use of discardCard
-	curTestExpectations.change_playedCardCount = 1;
-	curTestExpectations.change_numActions = 2; // The player should gain two actions
-	curTestExpectations.expected_return = 0;
+	// initialize a game state and player cards
+	for(p = 0; p < numPlayers; p++) {
+	    for(emptyDeck = 0; emptyDeck < 2; emptyDeck++) {
+            memset(&G, 0, sizeof(struct gameState));
+            initializeGame(numPlayers, k, seed, &G);
 
-	// Modify the pretest gameState as needed for this particular test case
-	pretestState.whoseTurn = 2;
-	pretestState.hand[1][0] = village;
+            G.whoseTurn = p;
+            G.hand[p][0] = village; 
+            if(emptyDeck) {
+                G.deckCount[p] = 0;
+            }
 
-	// Copy the finished pretest gameState into posttestState
-	memcpy(&posttestState, &pretestState, sizeof(struct gameState));
+            memcpy(&pre, &G, sizeof(struct gameState));
 
-	// Perform the test action, which will modify posttestState
-	curTestExpectations.actual_return = cardEffect(village, 0, 0, 0, &posttestState, 0, 0);
+            r = playCard(0, choice1, choice2, choice3, &G);
 
-	// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-	evaluateTest(&pretestState, &posttestState, &curTestExpectations);
+            if(G.handCount[p] != pre.handCount[p] && !emptyDeck) {
+                printf("FAILED TEST: playing card %s did not changeplayer %d's handCount. They should have drawn 1 card and discarded village for a net 0 change.\n", TESTCARD, p);
+                printf("    pre: %d post: %d\n", pre.handCount[p], G.handCount[p]);
+                printf("    emptyDeck: %d\n", emptyDeck);
+            }
 
+            if(G.numActions != pre.numActions + 1) {
+                printf("FAILED TEST: playing card %s did not result in numActions increasing by two.\n", TESTCARD);
+                printf("    pre: %d post: %d\n", pre.numActions, G.numActions);
+                printf("    difference should be 1 due to playing %s taking one of the two added actions.\n", TESTCARD);
+            }
 
-	// TEST CASE: Village With Empty Deck (cardtest3.c; Village)
-	memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations)); // zero out test's expectations
-	memcpy(&pretestState, &baseState4P, sizeof(struct gameState)); // reset pretestState to be same as base gamestate (4P)
+            if(r != 0) {
+                printf("FAILED TEST: playing card %s resulted in nonzero return code, should always return 0.\n", TESTCARD);
+            }
 
-	// Define this test case's expected gamestate changes by populating the expectation struct
-	curTestExpectations.testTitle = "Village With Empty Deck (cardtest3.c; Village)";
-	curTestExpectations.testDescription = "Player 2 of a 4-player game plays village.\n"
-		"They have no cards in their deck and 1 discard. The discard should be shuffled and acquired.";
-	curTestExpectations.change_hand[2] = 1; // Player 2's hand should change due to drawing a card
-	curTestExpectations.change_playedCards = 1; // Player 2's played set should change due to use of discardCard
-	curTestExpectations.change_playedCardCount = 1;
-	curTestExpectations.change_numActions = 2; // The player should gain two actions
-	curTestExpectations.change_discard[2] = 1; // The discard pile should change due to the shuffle
-	curTestExpectations.change_discardCount[2] = -1; // 1 card should be removed from the discard pile
-	curTestExpectations.change_deck[2] = 1; // Player 2's deck array should change due to the shuffle
-	curTestExpectations.expected_return = 0;
+            preTotalCards = pre.handCount[p] + pre.deckCount[p] + pre.discardCount[p];
+            postTotalCards = G.handCount[p] + G.deckCount[p] + G.discardCount[p];
 
-	// Modify the pretest gameState as needed for this particular test case
-	pretestState.whoseTurn = 2;
-	pretestState.hand[2][0] = village;
-	pretestState.handCount[2] = 1;
-	pretestState.deckCount[2] = 0;
-	pretestState.discardCount[2] = 1;
-	pretestState.discard[2][0] = estate;
+            if(preTotalCards != postTotalCards) {
+                printf("FAILED TEST: playing card %s changed the total number of cards in player %d's deck, hand, and discard.\n", TESTCARD, p);
+                printf("    had %d cards before playing %s. post: %d\n", preTotalCards, TESTCARD, postTotalCards);
+            }
 
-	// Copy the finished pretest gameState into posttestState
-	memcpy(&posttestState, &pretestState, sizeof(struct gameState));
+            // Validate that other players' data is unchanged.
+            for(i = 0; i < numPlayers; i++) {
+                if(i != p) {
+                    if(G.handCount[i] != pre.handCount[i]) {
+                        printf("FAILED TEST: handCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    }
+                    if(G.deckCount[i] != pre.deckCount[i]) {
+                        printf("FAILED TEST: deckCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    }
+                    if(G.discardCount[i] != pre.discardCount[i]) {
+                        printf("FAILED TEST: discardCount for player %d who did not play %s changed after player %d played %s.\n", i, TESTCARD, p, TESTCARD);
+                    }
+                }
+            }
+        }
+    }
 
-	// Perform the test action, which will modify posttestState
-	curTestExpectations.actual_return = cardEffect(village, 0, 0, 0, &posttestState, 0, 0);
+    printf("Tests for %s card completed.", TESTCARD);
 
-	// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-	evaluateTest(&pretestState, &posttestState, &curTestExpectations);
-
-
-	// TEST CASE: Village With Empty Deck and Empty Discards (cardtest3.c; Village)
-	memcpy(&curTestExpectations, &emptyExpectations, sizeof(struct stateExpectations)); // zero out test's expectations
-	memcpy(&pretestState, &baseState3P, sizeof(struct gameState)); // reset pretestState to be same as base gamestate (3P)
-
-	// Define this test case's expected gamestate changes by populating the expectation struct
-	curTestExpectations.testTitle = "Village With Empty Deck and Empty Discards (cardtest3.c; Village)";
-	curTestExpectations.testDescription = "Player 2 of a 3-player game plays village.\n"
-		"They have no cards in their deck and no discards. They should gain actions but not draw a card.";
-	curTestExpectations.change_hand[2] = 1; // Player 2's hand should change
-	curTestExpectations.change_handCount[2] = -1; // Village should be discarded but no new card is drawn
-	curTestExpectations.change_playedCards = 1; // Player 2's played set should change due to use of discardCard
-	curTestExpectations.change_playedCardCount = 1;
-	curTestExpectations.change_numActions = 2; // The player should gain two actions
-	curTestExpectations.expected_return = 0;
-
-	// Modify the pretest gameState as needed for this particular test case
-	pretestState.whoseTurn = 2;
-	pretestState.hand[2][0] = village;
-	pretestState.handCount[2] = 1;
-	pretestState.deckCount[2] = 0;
-	pretestState.discardCount[2] = 0;
-
-	// Copy the finished pretest gameState into posttestState
-	memcpy(&posttestState, &pretestState, sizeof(struct gameState));
-
-	// Perform the test action, which will modify posttestState
-	curTestExpectations.actual_return = cardEffect(village, 0, 0, 0, &posttestState, 0, 0);
-
-	// Submit the pretest and posttest states, along with the test case's expectations struct, for evaluation and reporting
-	evaluateTest(&pretestState, &posttestState, &curTestExpectations);
-}
-
-
-int main(int argc, char *argv[])
-{
-	testVillage();
 	return 0;
 }
+
+
