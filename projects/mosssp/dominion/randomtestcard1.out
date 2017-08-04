@@ -1,0 +1,39 @@
+randomcardtest1.c:
+On test 0 of 1000000
+FAILED TEST: player 1's handCount is 109 after playing smithy. Expected: 108
+    Test #0
+FAILED TEST: player 1's handCount is 7 after playing smithy. Expected: 6
+    Test #1
+FAILED TEST: player 0's handCount is 39 after playing smithy. Expected: 38
+    Test #2
+FAILED TEST: player 0's handCount is 29 after playing smithy. Expected: 28
+    Test #3
+FAILED TEST: player 1's handCount is 118 after playing smithy. Expected: 117
+    Test #4
+FAILED TEST: player 0's handCount is 298 after playing smithy. Expected: 297
+    Test #5
+FAILED TEST: player 0's handCount is 41 after playing smithy. Expected: 40
+    Test #6
+FAILED TEST: player 0's handCount is 274 after playing smithy. Expected: 273
+    Test #7
+FAILED TEST: player 2's handCount is 152 after playing smithy. Expected: 151
+    Test #8
+FAILED TEST: player 2's handCount is 35 after playing smithy. Expected: 34
+    Test #9
+On test 100000 of 1000000
+On test 200000 of 1000000
+On test 300000 of 1000000
+On test 400000 of 1000000
+On test 500000 of 1000000
+On test 600000 of 1000000
+On test 700000 of 1000000
+On test 800000 of 1000000
+On test 900000 of 1000000
+Tests for smithy card completed. 999954 total errors, 999944 suppressed.Processing file 1 out of 1
+File 'dominion.c'
+Lines executed:27.87% of 610
+Branches executed:27.58% of 417
+Taken at least once:21.58% of 417
+Calls executed:21.00% of 100
+Creating 'dominion.c.gcov'
+
