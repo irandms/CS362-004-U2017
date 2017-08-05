@@ -1,0 +1,21 @@
+BUG #1
+Reporter: Spencer Moss
+Date: August 5th, 2017
+Developer: Joel Tennyson
+Severity: High (breaks expected game functionality)
+Priority: High
+Unit Affected: playAdventurer() FUNCTION
+
+Description: the playAdventurer function does not consider Silver cards a valid treasure for its functionality, and so they end up in the discard pile instead of the hand if they are ever drawn using this card's effect.
+
+
+BUG #2
+Reporter: Spencer Moss
+Date: August 5th, 2017
+Developer: Joel Tennyson
+Severity: High (breaks expected game functionality)
+Priority: High
+
+Unit Affected: playSmithy() FUNCTION
+
+Description: the playSmithy function incorrectly sends the Smithy card that has just been played to the Trash, rather than the Discard pile.
