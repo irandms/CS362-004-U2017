@@ -100,7 +100,7 @@ randomtestcard2.out: dominion.o interface.c rngs.o randomtestcard2.c
 
 randomtestadventurer.out: dominion.o interface.c rngs.o randomtestadventurer.c 
 	echo "***** LAUNCHING RANDOM TESTS: ADVENTURER *****" > randomtestadventurer.out
-	gcc -o randomtestadventurer dominion.o rngs.o interface.c randomtestadventurer.c $(CFLAGS)
+	gcc -g -o randomtestadventurer dominion.o rngs.o interface.c randomtestadventurer.c $(CFLAGS)
 	./randomtestadventurer >> randomtestadventurer.out
 	gcov -b -c dominion.c >> randomtestadventurer.out
 	cat dominion.c.gcov >> randomtestadventurer.out

@@ -22,24 +22,26 @@ int main() {
     int i;
     int handPos;
     int numPlayers = 2;
+    int preTotalCards;
+    int postTotalCards;
 
-	struct gameState G, pre;
-	int k[10] = {adventurer, 
-	             embargo, 
-	             village, 
-	             minion, 
-	             mine, 
-	             cutpurse,
-	             sea_hag, 
-	             tribute, 
-	             smithy, 
-	             council_room
-	            };
+    struct gameState G, pre;
+    int k[10] = {adventurer, 
+        embargo, 
+        village, 
+        minion, 
+        mine, 
+        cutpurse,
+        sea_hag, 
+        tribute, 
+        smithy, 
+        council_room
+    };
 
-	// initialize a game state and player cards
-	for(p = 0; p < numPlayers; p++) {
-	    for(handPos = 0; handPos < 5; handPos++) {
-	        memset(&G, 0, sizeof(struct gameState));
+    // initialize a game state and player cards
+    for(p = 0; p < numPlayers; p++) {
+        for(handPos = 0; handPos < 5; handPos++) {
+            memset(&G, 0, sizeof(struct gameState));
             initializeGame(numPlayers, k, seed, &G);
             G.whoseTurn = p;
             G.hand[p][handPos] = smithy;
@@ -54,6 +56,14 @@ int main() {
 
             if(G.handCount[p] != pre.handCount[p] + 2) {
                 printf("FAILED TEST: player %d's handCount is %d after playing smithy. Expected: %d\n", p, G.handCount[p], pre.handCount[p]+2);
+            }
+
+            preTotalCards = pre.handCount[p] + pre.deckCount[p] + pre.discardCount[p] + G.playedCardCount;
+            postTotalCards = G.handCount[p] + G.deckCount[p] + G.discardCount[p] + G.playedCardCount;
+
+            if(preTotalCards != postTotalCards) {
+                printf("FAILED TEST: playing card %s changed the total number of cards in player %d's deck, hand, and discard.\n", TESTCARD, p);
+                printf("    had %d cards before playing %s. post: %d\n", preTotalCards, TESTCARD, postTotalCards);
             }
 
             // Validate that other players' data is unchanged.
@@ -75,7 +85,7 @@ int main() {
 
     puts("Tests for Smithy card completed.");
 
-	return 0;
+    return 0;
 }
 
 

@@ -1,0 +1,14 @@
+diff --git a/projects/mosssp/tennysoj_Dominion/dominion.c b/projects/mosssp/tennysoj_Dominion/dominion.c
+index 13656a5..66a12e8 100644
+--- a/projects/mosssp/tennysoj_Dominion/dominion.c
++++ b/projects/mosssp/tennysoj_Dominion/dominion.c
+@@ -648,6 +648,9 @@ int playAdventurer(int drawntreasure, int currentPlayer, int cardDrawn, int *tem
+ 		if (state->deckCount[currentPlayer] <1) {//if the deck is empty we need to shuffle discard and add to deck
+ 			shuffle(currentPlayer, state);
+ 		}
++		if(state->deckCount[currentPlayer] == 0) {
++            break;
++        }
+ 		drawCard(currentPlayer, state);
+ 		cardDrawn = state->hand[currentPlayer][state->handCount[currentPlayer] - 1];//top card of hand is most recently drawn card.
+ 		if (cardDrawn == copper || cardDrawn == gold)

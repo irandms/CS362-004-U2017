@@ -166,6 +166,10 @@ int main() {
     int drewTooManyErrorCount = 0;
     int errorCount = 0;
 
+    int drawnCoppers = 0;
+    int drawnSilvers = 0;
+    int drawnGolds = 0;
+
     for(tests_done = 0; tests_done < MAX_TESTS; tests_done++) {
         if( (tests_done % 100000) == 0 ) {
             printf("On test %d of %d\n", tests_done, MAX_TESTS);
@@ -221,6 +225,20 @@ int main() {
             errorCount++;
         }
 
+        for(i = pre.handCount[p]; i < G.handCount[p]; i++) {
+            switch(G.hand[p][i]) {
+                case copper:
+                    drawnCoppers++;
+                    break;
+                case silver:
+                    drawnSilvers++;
+                    break;
+                case gold:
+                    drawnGolds++;
+                    break;
+            }
+        }
+
         // Validate that other players' data is unchanged.
         for(i = 0; i < G.numPlayers; i++) {
             if(i != p) {
@@ -241,6 +259,16 @@ int main() {
                 }
             }
         }
+    }
+
+    if(drawnCoppers == 0) {
+        printf("FAILED TEST: never drew a copper card!\n");
+    }
+    if(drawnSilvers == 0) {
+        printf("FAILED TEST: never drew a silver card!\n");
+    }
+    if(drawnGolds == 0) {
+        printf("FAILED TEST: never drew a gold card!\n");
     }
 
     printf("Tests for %s card completed. %d total errors, %d suppressed.", TESTCARD, errorCount, errorCount - totalCardsErrCount - failedToDrawErrorCount - drewTooManyErrorCount);
